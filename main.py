@@ -7,8 +7,8 @@ from tkinter import messagebox
 
 # ==================== إعدادات التحديث التلقائي ====================
 CURRENT_VERSION = "1.0.0-beta"
-# استبدل هذا الرابط بالرابط الخام (Raw Link) لملف beta_version.json من مستودعك على GitHub
-VERSION_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/calculator-app/main/beta_version.json"
+# الرابط المباشر الصحيح لملف beta_version.json على مستودعك
+VERSION_URL = "https://raw.githubusercontent.com/816400/calculator-app/main/beta_version.json"
 
 def check_for_updates():
     """التحقق من وجود تحديث جديد تلقائياً"""
