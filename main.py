@@ -1,144 +1,128 @@
-import sys
-import os
 import tkinter as tk
 from tkinter import messagebox
 import urllib.request
 import json
 import webbrowser
 
-CURRENT_VERSION = "v1.0.0"
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/816400/calculator-app/main/beta_version.json"
+# إعداد النافذة الرئيسية (Landscape Edition)
+root = tk.Tk()
+root.title("AI Calculator Pro - Landscape Edition")
+root.geometry("500x320")
+root.resizable(False, False)
+root.configure(bg="#222222")
 
-class AICalculatorPro:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("AI Calculator Pro - Landscape")
-        self.root.geometry("540x380")
-        self.root.config(bg="#1e1e1e")
-        self.root.resizable(False, False)
+# متغير لتخزين النص المدخل
+expression = ""
+input_text = tk.StringVar()
 
-        self.expression = ""
-        self.input_text = tk.StringVar()
-
-        self.create_widgets()
-        self.check_for_updates()
-
-    def create_widgets(self):
-        input_frame = tk.Frame(self.root, bg="#1e1e1e")
-        input_frame.pack(pady=10)
-
-        input_field = tk.Entry(
-            input_frame, 
-            font=('Arial', 22, 'bold'), 
-            textvariable=self.input_text, 
-            width=22, 
-            bg="#2d2d2d", 
-            fg="#ffffff", 
-            bd=0, 
-            justify=tk.RIGHT
-        )
-        input_field.grid(row=0, column=0, ipady=10)
-
-        btns_frame = tk.Frame(self.root, bg="#1e1e1e")
-        btns_frame.pack()
-
-        # توزيع أزرار العرض مع علامة الضرب الواضحة (×) وزر الحذف الخلفي (⌫)
-        buttons = [
-            ('C', 1, 0), ('(', 1, 1), (')', 1, 2), ('/', 1, 3), ('⌫', 1, 4),
-            ('7', 2, 0), ('8', 2, 1), ('9', 2, 2), ('×', 2, 3), ('AI', 2, 4),
-            ('4', 3, 0), ('5', 3, 1), ('6', 3, 2), ('-', 3, 3), ('=', 3, 4),
-            ('1', 4, 0), ('2', 4, 1), ('3', 4, 2), ('+', 4, 3), ('.', 4, 4),
-            ('0', 5, 0)
-        ]
-
-        for item in buttons:
-            text = item[0]
-            row = item[1]
-            col = item[2]
+# --- دالة فحص التحديثات والأمان التلقائي ---
+def check_updates_and_security():
+    try:
+        url = "https://raw.githubusercontent.com/816400/calculator-app/main/beta_version.json"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=3) as response:
+            data = json.loads(response.read().decode())
             
-            # ضبط عرض زر الصفر ليأخذ مساحة أكبر في العرض
-            btn_width = 11 if text == '0' else 5
-            btn_colspan = 2 if text == '0' else 1
+            # 1. فحص التنبيهات الأمنية أولاً
+            if data.get("security_alert", False):
+                sec_msg = data.get("security_message", "تحذير أمني هام: يرجى تحديث التطبيق فوراً!")
+                messagebox.showerror("تنبيه أمني حرَج 🛡️", sec_msg)
+            
+            # 2. فحص الإصدارات الجديدة
+            remote_version = data.get("version", "1.0.0-beta")
+            current_version = "1.0.0-beta"
+            
+            if remote_version != current_version:
+                download_url = data.get("download_url", "")
+                if messagebox.askyesno("تحديث جديد متوفر 🚀", f"يتوفر إصدار جديد ({remote_version}). هل تريد التحميل الآن؟"):
+                    if download_url:
+                        webbrowser.open(download_url)
+    except Exception as e:
+        # عدم إزعاج المستخدم إذا لم تتوفر إنترنت
+        print(f"فشل الاتصال بخادم التحديثات: {e}")
 
-            if text == '=':
-                bg_color = "#007acc"
-                fg_color = "#ffffff"
-                command = self.calculate
-            elif text == 'C':
-                bg_color = "#d9534f"
-                fg_color = "#ffffff"
-                command = self.clear
-            elif text == '⌫':
-                bg_color = "#f0ad4e"
-                fg_color = "#ffffff"
-                command = self.backspace
-            elif text == 'AI':
-                bg_color = "#8a2be2"
-                fg_color = "#ffffff"
-                command = self.ai_assist
-            else:
-                bg_color = "#333333"
-                fg_color = "#ffffff"
-                if text == '×':
-                    command = lambda: self.btn_click('*')
-                else:
-                    command = lambda t=text: self.btn_click(t)
+# شاشة العرض (Display)
+text_field = tk.Entry(
+    root, 
+    font=('Arial', 24, 'bold'), 
+    textvariable=input_text, 
+    width=26, 
+    bg="#333333", 
+    fg="#ffffff", 
+    bd=0, 
+    justify="right"
+)
+text_field.pack(padx=20, pady=20, ipady=10)
 
-            btn = tk.Button(
-                btns_frame, 
-                text=text, 
-                font=('Arial', 12, 'bold'), 
-                fg=fg_color, 
-                bg=bg_color, 
-                bd=0, 
-                width=btn_width, 
-                height=2, 
-                command=command
-            )
-            btn.grid(row=row, column=col, columnspan=btn_colspan, padx=4, pady=4)
+# دوال الحاسبة
+def btn_click(item):
+    global expression
+    expression = expression + str(item)
+    input_text.set(expression)
 
-    def btn_click(self, item):
-        self.expression += str(item)
-        self.input_text.set(self.expression)
+def btn_clear():
+    global expression
+    expression = ""
+    input_text.set("")
 
-    def clear(self):
-        self.expression = ""
-        self.input_text.set("")
+def btn_backspace():
+    global expression
+    expression = expression[:-1]
+    input_text.set(expression)
 
-    def backspace(self):
-        self.expression = self.expression[:-1]
-        self.input_text.set(self.expression)
+def btn_equal():
+    global expression
+    try:
+        # استبدال علامة الضرب المرئية بعملية بايثون
+        calc_expression = expression.replace('×', '*')
+        result = str(eval(calc_expression))
+        input_text.set(result)
+        expression = result
+    except Exception:
+        messagebox.showerror("خطأ", "عملية غير صالحة")
+        expression = ""
+        input_text.set("")
 
-    def calculate(self):
-        try:
-            result = str(eval(self.expression))
-            self.input_text.set(result)
-            self.expression = result
-        except Exception:
-            messagebox.showerror("خطأ", "عملية غير صالحة")
-            self.expression = ""
-            self.input_text.set("")
+# إطار الأزرار (تصميم أفقي/Landscape)
+btns_frame = tk.Frame(root, bg="#222222")
+btns_frame.pack()
 
-    def ai_assist(self):
-        messagebox.showinfo("مساعد الذكاء الاصطناعي", "مرحباً بك! نظام الذكاء الاصطناعي جاهز لمساعدتك.")
+# تخطيط الأزرار
+buttons = [
+    ('C', 1, 0, '#d9534f', btn_clear),
+    ('⌫', 1, 1, '#f0ad4e', btn_backspace),
+    ('/', 1, 2, '#5bc0de', lambda: btn_click('/')),
+    ('×', 1, 3, '#5bc0de', lambda: btn_click('×')),
+    
+    ('7', 2, 0, '#444444', lambda: btn_click('7')),
+    ('8', 2, 1, '#444444', lambda: btn_click('8')),
+    ('9', 2, 2, '#444444', lambda: btn_click('9')),
+    ('-', 2, 3, '#5bc0de', lambda: btn_click('-')),
+    
+    ('4', 3, 0, '#444444', lambda: btn_click('4')),
+    ('5', 3, 1, '#444444', lambda: btn_click('5')),
+    ('6', 3, 2, '#444444', lambda: btn_click('6')),
+    ('+', 3, 3, '#5bc0de', lambda: btn_click('+')),
+    
+    ('1', 4, 0, '#444444', lambda: btn_click('1')),
+    ('2', 4, 1, '#444444', lambda: btn_click('2')),
+    ('3', 4, 2, '#444444', lambda: btn_click('3')),
+    ('=', 4, 3, '#5cb85c', btn_equal),
+    
+    ('0', 5, 0, '#444444', lambda: btn_click('0')),
+    ('.', 5, 1, '#444444', lambda: btn_click('.'))
+]
 
-    def check_for_updates(self):
-        try:
-            req = urllib.request.Request(
-                GITHUB_VERSION_URL, 
-                headers={'User-Agent': 'Mozilla/5.0'}
-            )
-            with urllib.request.urlopen(req, timeout=3) as response:
-                data = json.loads(response.read().decode())
-                latest_version = data.get("version")
-                
-                if latest_version and latest_version != CURRENT_VERSION:
-                    if messagebox.askyesno("تحديث جديد متوفر", f"توفر إصدار جديد ({latest_version}). هل تريد الانتقال لصفحة التحميل؟"):
-                        webbrowser.open("https://github.com/816400/calculator-app/releases")
-        except Exception:
-            pass
+for (text, row, col, bg_color, command) in buttons:
+    if text == '0':
+        btn = tk.Button(btns_frame, text=text, fg="#ffffff", bg=bg_color, width=17, height=2, bd=0, font=('Arial', 14, 'bold'), command=command)
+        btn.grid(row=row, column=col, columnspan=2, padx=3, pady=3)
+    else:
+        span = 2 if text == '=' else 1
+        btn = tk.Button(btns_frame, text=text, fg="#ffffff", bg=bg_color, width=8, height=2, bd=0, font=('Arial', 14, 'bold'), command=command)
+        btn.grid(row=row, column=col, columnspan=span, padx=3, pady=3)
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AICalculatorPro(root)
-    root.mainloop()
+# تشغيل فحص التحديثات والأمان في الخلفية عند فتح التطبيق
+root.after(1000, check_updates_and_security)
+
+root.mainloop()
