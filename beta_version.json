@@ -1,4 +1,6 @@
-{ 
-  "version": "1.0.0-beta", 
-  "download_url": "https://raw.githubusercontent.com/816400/calculator-app/main/dist/main.exe" 
+{
+  "version": "1.1.0",
+  "url": "https://github.com/816400/calculator-app/releases/download/v1.1.0/main.exe",
+  "security_alert": false,
+  "alert_message": ""
 }
