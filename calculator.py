@@ -6,7 +6,7 @@ import urllib.request
 class AICalculatorPro:
     def __init__(self, root):
         self.root = root
-        self.version = "1.5.0"  # الإصدار الحالي الثابت
+        self.version = "1.5.0"
         self.root.title(f"AI Calculator Pro v{self.version}")
         self.root.geometry("540x550")
         self.root.resizable(True, True)
@@ -141,24 +141,21 @@ class AICalculatorPro:
         self.history_listbox.delete(0, tk.END)
 
     def parse_version(self, v_str):
-        """تحويل نص الإصدار إلى أرقام للمقارنة الدقيقة (مثال: 1.5.0 -> [1, 5, 0])"""
         try:
             return [int(x) for x in re.findall(r'\d+', v_str)]
         except Exception:
             return [0, 0, 0]
 
     def check_for_updates_manual(self):
-        """فحص يدوي دقيق وآمن للتحديثات"""
+        """فحص يدوي آمن عند ضغط زر فحص التحديثات فقط"""
         try:
             url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=4) as response:
                 remote_version_str = response.read().decode('utf-8').strip()
-                
                 current_v = self.parse_version(self.version)
                 remote_v = self.parse_version(remote_version_str)
                 
-                # مقارنة الأرقام بدقة (أعلى إصدار)
                 if remote_v > current_v:
                     messagebox.showinfo("تحديث متوفر", f"يتوفر إصدار جديد ({remote_version_str})!\nإصدارك الحالي هو ({self.version}).")
                 else:
