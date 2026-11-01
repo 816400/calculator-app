@@ -16,7 +16,6 @@ class AICalculatorPro:
         self.expression = ""
         self.display_var = tk.StringVar(value="0")
 
-        # التقسيم الرئيسي: الحاسبة (يسار) وسجل العمليات (يمين)
         main_layout = tk.Frame(self.root, bg="#1e1e2e")
         main_layout.pack(expand=True, fill="both", padx=10, pady=10)
 
@@ -24,7 +23,7 @@ class AICalculatorPro:
         main_layout.grid_columnconfigure(1, weight=2)
         main_layout.grid_rowconfigure(0, weight=1)
 
-        # ---- إطار الحاسبة (اليسار) ----
+        # إطار الحاسبة (اليسار)
         calc_frame = tk.Frame(main_layout, bg="#1e1e2e")
         calc_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         calc_frame.grid_rowconfigure(1, weight=1)
@@ -74,7 +73,7 @@ class AICalculatorPro:
             )
             btn.grid(row=row, column=col, padx=3, pady=3, sticky="nsew")
 
-        # ---- إطار سجل العمليات والأزرار (اليمين) ----
+        # إطار السجل والأزرار (اليمين)
         history_frame = tk.Frame(main_layout, bg="#181825", bd=2)
         history_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         history_frame.grid_rowconfigure(1, weight=1)
@@ -147,7 +146,6 @@ class AICalculatorPro:
             return [0, 0, 0]
 
     def check_for_updates_manual(self):
-        """فحص يدوي آمن عند ضغط زر فحص التحديثات فقط"""
         try:
             url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -187,14 +185,11 @@ class AICalculatorPro:
                 result = eval(self.expression)
                 if isinstance(result, float) and result.is_integer():
                     result = int(result)
-                
                 result_str = str(result)
                 self.display_var.set(result_str)
-                
                 if calc_str:
                     self.history_listbox.insert(tk.END, f"{calc_str} = {result_str}")
                     self.history_listbox.see(tk.END)
-
                 self.expression = result_str
             except Exception:
                 self.display_var.set("Error")
@@ -205,7 +200,6 @@ class AICalculatorPro:
                 current_number = parts[-1] if parts else ""
                 if "." in current_number:
                     return
-
             if self.display_var.get() == "0" and char not in ".+-*/":
                 self.expression = char
             else:
