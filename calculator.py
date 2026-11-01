@@ -6,7 +6,7 @@ import urllib.request
 class AICalculatorPro:
     def __init__(self, root):
         self.root = root
-        self.version = "1.4.0"
+        self.version = "1.5.0"  # الإصدار الحالي الثابت
         self.root.title(f"AI Calculator Pro v{self.version}")
         self.root.geometry("540x550")
         self.root.resizable(True, True)
@@ -102,7 +102,6 @@ class AICalculatorPro:
         )
         self.history_listbox.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        # إطار أزرار السجل والتحقق
         action_frame = tk.Frame(history_frame, bg="#181825")
         action_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
         action_frame.grid_columnconfigure(0, weight=1)
@@ -136,21 +135,32 @@ class AICalculatorPro:
         )
         update_btn.grid(row=0, column=1, sticky="ew", padx=(2, 0), pady=2)
 
-        # ربط لوحة المفاتيح
         self.root.bind("<Key>", self.on_key_press)
 
     def clear_history(self):
         self.history_listbox.delete(0, tk.END)
 
+    def parse_version(self, v_str):
+        """تحويل نص الإصدار إلى أرقام للمقارنة الدقيقة (مثال: 1.5.0 -> [1, 5, 0])"""
+        try:
+            return [int(x) for x in re.findall(r'\d+', v_str)]
+        except Exception:
+            return [0, 0, 0]
+
     def check_for_updates_manual(self):
-        """فحص يدوي للتحديثات عند ضغط الزر"""
+        """فحص يدوي دقيق وآمن للتحديثات"""
         try:
             url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=4) as response:
-                latest_version = response.read().decode('utf-8').strip()
-                if latest_version > self.version:
-                    messagebox.showinfo("تحديث متوفر", f"يتوفر إصدار جديد ({latest_version})!\nإصدارك الحالي هو ({self.version}).")
+                remote_version_str = response.read().decode('utf-8').strip()
+                
+                current_v = self.parse_version(self.version)
+                remote_v = self.parse_version(remote_version_str)
+                
+                # مقارنة الأرقام بدقة (أعلى إصدار)
+                if remote_v > current_v:
+                    messagebox.showinfo("تحديث متوفر", f"يتوفر إصدار جديد ({remote_version_str})!\nإصدارك الحالي هو ({self.version}).")
                 else:
                     messagebox.showinfo("تحديث", "أنت تستخدم أحدث إصدار بالفعل!")
         except Exception:
