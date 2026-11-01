@@ -1,11 +1,14 @@
 import tkinter as tk
 from tkinter import messagebox
 import re
+import threading
+import urllib.request
 
 class AICalculatorPro:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Calculator Pro v1.2.0")
+        self.version = "1.2.0"  # الإصدار الحالي
+        self.root.title(f"AI Calculator Pro v{self.version}")
         self.root.geometry("360x520")
         
         # --- تفعيل التكبير والتصغير بالكامل ---
@@ -66,6 +69,29 @@ class AICalculatorPro:
 
         # ربط لوحة المفاتيح
         self.root.bind("<Key>", self.on_key_press)
+
+        # فحص التحديثات في الخلفية بصمت تام ودون إزعاج
+        self.check_for_updates_silently()
+
+    def check_for_updates_silently(self):
+        """فحص التحديثات في الخلفية دون تعطيل أو إزعاج التطبيق"""
+        def background_task():
+            try:
+                url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    latest_version = response.read().decode('utf-8').strip()
+                    # إذا كان الإصدار على الإنترنت أحدث، يظهر تنبيه لطيف فقط
+                    if latest_version > self.version:
+                        self.root.after(0, lambda: messagebox.showinfo(
+                            "تحديث متوفر", 
+                            f"يتوفر إصدار جديد ({latest_version})!\nيمكنك تحديث نسختك من مستودع GitHub."
+                        ))
+            except Exception:
+                pass  # يتجاهل أي خطأ في الاتصال أو عدم توفر الملف بصمت تام
+
+        # تشغيل في خيط منفصل لكي لا يؤدي لبطء فتح الحاسبة
+        threading.Thread(target=background_task, daemon=True).start()
 
     def on_key_press(self, event):
         char = event.char
