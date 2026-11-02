@@ -5,17 +5,18 @@ import threading
 import urllib.request
 import ast
 import operator
+import math
 
 class AICalculatorPro:
     def __init__(self, root):
         self.root = root
-        self.version = "1.3.0"  # تم تحديث الإصدار
+        self.version = "2.0.0"  # تحديث كبرى لدعم العمليات المتقدمة
         self.root.title(f"AICalculatorPro v{self.version}")
-        self.root.geometry("360x520")
+        self.root.geometry("380x600")
         
         # --- تفعيل التكبير والتصغير بالكامل ---
         self.root.resizable(True, True)
-        self.root.minsize(300, 450)
+        self.root.minsize(320, 500)
         # -------------------------------------
         
         self.root.configure(bg="#1e1e2e")
@@ -24,12 +25,12 @@ class AICalculatorPro:
         self.display_var = tk.StringVar(value="0")
         
         display_frame = tk.Frame(self.root, bg="#1e1e2e", bd=10)
-        display_frame.pack(expand=True, fill="both")
+        display_frame.pack(expand=False, fill="both")
 
         self.display_label = tk.Label(
             display_frame,
             textvariable=self.display_var,
-            font=("Consolas", 28, "bold"),
+            font=("Consolas", 24, "bold"),
             anchor="e",
             bg="#181825",
             fg="#cdd6f4",
@@ -41,24 +42,28 @@ class AICalculatorPro:
         buttons_frame = tk.Frame(self.root, bg="#1e1e2e")
         buttons_frame.pack(expand=True, fill="both", padx=10, pady=10)
 
+        # تصميم الأزرار المحدث (يشمل العمليات المتقدمة)
         buttons = [
             ('C', 0, 0, "#f38ba8"), ('(', 0, 1, "#89b4fa"), (')', 0, 2, "#89b4fa"), ('/', 0, 3, "#fab387"),
-            ('7', 1, 0, "#313244"), ('8', 1, 1, "#313244"), ('9', 1, 2, "#313244"), ('*', 1, 3, "#fab387"),
-            ('4', 2, 0, "#313244"), ('5', 2, 1, "#313244"), ('6', 2, 2, "#313244"), ('-', 2, 3, "#fab387"),
-            ('1', 3, 0, "#313244"), ('2', 3, 1, "#313244"), ('3', 3, 2, "#313244"), ('+', 3, 3, "#fab387"),
-            ('0', 4, 0, "#313244"), ('.', 4, 1, "#313244"), ('DEL', 4, 2, "#f38ba8"), ('=', 4, 3, "#a6e3a1")
+            ('sin', 1, 0, "#89b4fa"), ('cos', 1, 1, "#89b4fa"), ('tan', 1, 2, "#89b4fa"), ('*', 1, 3, "#fab387"),
+            ('x^2', 2, 0, "#89b4fa"), ('sqrt', 2, 1, "#89b4fa"), ('pi', 2, 2, "#fab387"), ('-', 2, 3, "#fab387"),
+            ('7', 3, 0, "#313244"), ('8', 3, 1, "#313244"), ('9', 3, 2, "#313244"), ('+', 3, 3, "#fab387"),
+            ('4', 4, 0, "#313244"), ('5', 4, 1, "#313244"), ('6', 4, 2, "#313244"), ('DEL', 4, 3, "#f38ba8"),
+            ('1', 5, 0, "#313244"), ('2', 5, 1, "#313244"), ('3', 5, 2, "#313244"), ('=', 5, 3, "#a6e3a1"),
+            ('0', 6, 0, "#313244"), ('.', 6, 1, "#313244"), ('e', 6, 2, "#fab387")
         ]
 
-        for i in range(5):
+        for i in range(7):
             buttons_frame.grid_rowconfigure(i, weight=1)
         for j in range(4):
             buttons_frame.grid_columnconfigure(j, weight=1)
 
         for text, row, col, color in buttons:
+            # جعل زر الصفر يمتد على عمودين إن أردت أو يظل في مكانه (هنا يأخذ خانة واحدة مع بقية الأزرار بمرونة)
             btn = tk.Button(
                 buttons_frame,
                 text=text,
-                font=("Arial", 14, "bold"),
+                font=("Arial", 12, "bold"),
                 bg=color,
                 fg="#11111b" if color in ["#f38ba8", "#89b4fa", "#fab387", "#a6e3a1"] else "#cdd6f4",
                 activebackground="#45475a",
@@ -67,32 +72,71 @@ class AICalculatorPro:
                 bd=0,
                 command=lambda t=text: self.on_button_click(t)
             )
-            btn.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
+            # دمج زر الصفر أو توزيعه بشكل صحيح
+            if text == '0':
+                btn.grid(row=row, column=col, columnspan=2, padx=4, pady=4, sticky="nsew")
+            elif text == '.':
+                btn.grid(row=row, column=col+1, padx=4, pady=4, sticky="nsew")
+            elif text == 'e':
+                btn.grid(row=row, column=col+1, padx=4, pady=4, sticky="nsew")
+            elif text in ['.', 'e'] and col == 1: # لتلافي تداخل الأعمدة بعد الصفر
+                pass
+            else:
+                if text == '.':
+                    btn.grid(row=row, column=2, padx=4, pady=4, sticky="nsew")
+                elif text == 'e':
+                    btn.grid(row=row, column=3, padx=4, pady=4, sticky="nsew")
+                else:
+                    btn.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
+
+        # إعادة ضبط توزيع شبكة الأزرار بشكل دقيق لتفادي التداخل
+        self.rebuild_grid(buttons_frame, buttons)
 
         # ربط لوحة المفاتيح
         self.root.bind("<Key>", self.on_key_press)
-
-        # فحص التحديثات في الخلفية بصمت تام (عبر HTTPS الآمن)
         self.check_for_updates_silently()
 
+    def rebuild_grid(self, frame, buttons):
+        """إعادة ترتيب الأزرار بوضوح ودقة تامة"""
+        for widget in frame.winfo_children():
+            widget.grid_forget()
+
+        for text, row, col, color in buttons:
+            btn = tk.Button(
+                frame,
+                text=text,
+                font=("Arial", 11, "bold"),
+                bg=color,
+                fg="#11111b" if color in ["#f38ba8", "#89b4fa", "#fab387", "#a6e3a1"] else "#cdd6f4",
+                activebackground="#45475a",
+                activeforeground="#ffffff",
+                relief="flat",
+                bd=0,
+                command=lambda t=text: self.on_button_click(t)
+            )
+            if text == '0':
+                btn.grid(row=row, column=col, columnspan=2, padx=3, pady=3, sticky="nsew")
+            elif text == '.':
+                btn.grid(row=row, column=2, padx=3, pady=3, sticky="nsew")
+            elif text == 'e':
+                btn.grid(row=row, column=3, padx=3, pady=3, sticky="nsew")
+            else:
+                btn.grid(row=row, column=col, padx=3, pady=3, sticky="nsew")
+
     def check_for_updates_silently(self):
-        """فحص التحديثات بأمان تام باستخدام HTTPS"""
         def background_task():
             try:
-                # استخدام رابط آمن HTTPS حصراً لمنع هجمات التلاعب بالبيانات
                 url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
                 req = urllib.request.Request(url, headers={'User-Agent': 'AICalculatorPro-SecureClient'})
                 with urllib.request.urlopen(req, timeout=3) as response:
                     latest_version = response.read().decode('utf-8').strip()
-                    # التحقق من أن الإصدار عبارة عن تنسيق صالح لتفادي أي حقن بيانات عشوائية
                     if re.match(r'^\d+(\.\d+)*$', latest_version) and latest_version > self.version:
                         self.root.after(0, lambda: messagebox.showinfo(
                             "تحديث متوفر", 
                             f"يتوفر إصدار جديد وآمن ({latest_version})!\nيمكنك تحديث نسختك من مستودع GitHub."
                         ))
             except Exception:
-                pass  # تجاهل أخطاء الاتصال بصمت
-
+                pass
         threading.Thread(target=background_task, daemon=True).start()
 
     def on_key_press(self, event):
@@ -107,33 +151,53 @@ class AICalculatorPro:
             self.on_button_click("C")
 
     def safe_eval(self, expr):
-        """محلل حسابي آمن بدلاً من استخدام eval() الخطيرة"""
+        """محلل حسابي مطور وآمن يدعم العمليات الرياضية والمثلثية المتقدمة"""
         operators = {
             ast.Add: operator.add,
             ast.Sub: operator.sub,
             ast.Mult: operator.mul,
             ast.Div: operator.truediv,
+            ast.Pow: operator.pow,
             ast.UAdd: operator.pos,
             ast.USub: operator.neg,
         }
 
+        # دوال الثوابت والمثلثات المدعومة بأمان
+        safe_names = {
+            'pi': math.pi,
+            'e': math.e,
+            'sin': lambda x: math.sin(math.radians(x)),
+            'cos': lambda x: math.cos(math.radians(x)),
+            'tan': lambda x: math.tan(math.radians(x)),
+            'sqrt': math.sqrt,
+        }
+
         def _eval(node):
-            if isinstance(node, ast.Constant):  # أرقام (Python 3.8+)
+            if isinstance(node, ast.Constant):
                 if isinstance(node.value, (int, float)):
                     return node.value
                 raise TypeError("نوع بيانات غير مدعوم")
-            elif isinstance(node, ast.BinOp):  # عمليات ثنائية (+, -, *, /)
+            elif isinstance(node, ast.Name):
+                if node.id in safe_names:
+                    return safe_names[node.id]
+                raise NameError(f"متغير غير مسموح به: {node.id}")
+            elif isinstance(node, ast.BinOp):
                 if type(node.op) in operators:
                     return operators[type(node.op)](_eval(node.left), _eval(node.right))
                 raise TypeError("عملية غير مسموح بها")
-            elif isinstance(node, ast.UnaryOp):  # أرقام سالبة أو موجبة
+            elif isinstance(node, ast.UnaryOp):
                 if type(node.op) in operators:
                     return operators[type(node.op)](_eval(node.operand))
                 raise TypeError("عملية أحادية غير مسموح بها")
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id in safe_names:
+                    func = safe_names[node.func.id]
+                    args = [_eval(arg) for arg in node.args]
+                    return func(*args)
+                raise TypeError("دالة غير مسموح بها")
             else:
                 raise TypeError("تعبير غير صالح")
 
-        # تحليل التعبير الرياضي شجرة نحوياً (AST)
         parsed_node = ast.parse(expr, mode='eval')
         return _eval(parsed_node.body)
 
@@ -146,15 +210,19 @@ class AICalculatorPro:
             self.display_var.set(self.expression if self.expression else "0")
         elif char == "=":
             try:
-                # التحقق الأمني من طول النص لمنع هجمات الاستهلاك المفرط للذاكرة
-                if len(self.expression) > 100:
+                if len(self.expression) > 150:
                     raise ValueError("التعبير طويل جداً")
                 
-                # استخدام المحلل الآمن
-                result = self.safe_eval(self.expression)
+                # استبدال رموز الواجهة بصيغة يفهمها محلل بايثون (مثل x^2 إلى **2)
+                eval_expr = self.expression.replace('x^2', '**2').replace('sqrt', 'sqrt')
                 
-                if isinstance(result, float) and result.is_integer():
-                    result = int(result)
+                result = self.safe_eval(eval_expr)
+                
+                if isinstance(result, float):
+                    if result.is_integer():
+                        result = int(result)
+                    else:
+                        result = round(result, 6) # تقريب النتائج العشرية الطويلة لمنع تجاوز الشاشة
                 
                 self.display_var.set(str(result))
                 self.expression = str(result)
@@ -162,20 +230,32 @@ class AICalculatorPro:
                 self.display_var.set("Error")
                 self.expression = ""
         else:
-            if char == ".":
-                parts = re.split(r'[\+\-\*\/\(\)]', self.expression)
-                current_number = parts[-1] if parts else ""
-                if "." in current_number:
+            # التعامل مع الأزرار الخاصة والعمليات المتقدمة
+            if char == "x^2":
+                self.expression += "**2"
+            elif char == "sqrt":
+                self.expression += "sqrt("
+            elif char in ["sin", "cos", "tan"]:
+                self.expression += f"{char}("
+            elif char == "pi":
+                self.expression += "pi"
+            elif char == "e":
+                self.expression += "e"
+            else:
+                if char == ".":
+                    parts = re.split(r'[\+\-\*\/\(\)\^\s]', self.expression)
+                    current_number = parts[-1] if parts else ""
+                    if "." in current_number:
+                        return
+
+                if len(self.expression) >= 150:
                     return
 
-            # تحديد حد أقصى للإدخال لتفادي الضغط على الذاكرة
-            if len(self.expression) >= 100:
-                return
-
-            if self.display_var.get() == "0" and char not in ".+-*/":
-                self.expression = char
-            else:
-                self.expression += str(char)
+                if self.display_var.get() == "0" and char not in ".+-*/^":
+                    self.expression = char
+                else:
+                    self.expression += str(char)
+            
             self.display_var.set(self.expression)
 
 if __name__ == "__main__":
