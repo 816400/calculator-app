@@ -3,12 +3,14 @@ from tkinter import messagebox
 import re
 import threading
 import urllib.request
+import ast
+import operator
 
 class AICalculatorPro:
     def __init__(self, root):
         self.root = root
-        self.version = "1.2.0"  # الإصدار الحالي
-        self.root.title(f"AI Calculator Pro v{self.version}")
+        self.version = "1.3.0"  # تم تحديث الإصدار
+        self.root.title(f"AICalculatorPro v{self.version}")
         self.root.geometry("360x520")
         
         # --- تفعيل التكبير والتصغير بالكامل ---
@@ -70,27 +72,27 @@ class AICalculatorPro:
         # ربط لوحة المفاتيح
         self.root.bind("<Key>", self.on_key_press)
 
-        # فحص التحديثات في الخلفية بصمت تام ودون إزعاج
+        # فحص التحديثات في الخلفية بصمت تام (عبر HTTPS الآمن)
         self.check_for_updates_silently()
 
     def check_for_updates_silently(self):
-        """فحص التحديثات في الخلفية دون تعطيل أو إزعاج التطبيق"""
+        """فحص التحديثات بأمان تام باستخدام HTTPS"""
         def background_task():
             try:
+                # استخدام رابط آمن HTTPS حصراً لمنع هجمات التلاعب بالبيانات
                 url = "https://raw.githubusercontent.com/816400/calculator-app/main/version.txt"
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                req = urllib.request.Request(url, headers={'User-Agent': 'AICalculatorPro-SecureClient'})
                 with urllib.request.urlopen(req, timeout=3) as response:
                     latest_version = response.read().decode('utf-8').strip()
-                    # إذا كان الإصدار على الإنترنت أحدث، يظهر تنبيه لطيف فقط
-                    if latest_version > self.version:
+                    # التحقق من أن الإصدار عبارة عن تنسيق صالح لتفادي أي حقن بيانات عشوائية
+                    if re.match(r'^\d+(\.\d+)*$', latest_version) and latest_version > self.version:
                         self.root.after(0, lambda: messagebox.showinfo(
                             "تحديث متوفر", 
-                            f"يتوفر إصدار جديد ({latest_version})!\nيمكنك تحديث نسختك من مستودع GitHub."
+                            f"يتوفر إصدار جديد وآمن ({latest_version})!\nيمكنك تحديث نسختك من مستودع GitHub."
                         ))
             except Exception:
-                pass  # يتجاهل أي خطأ في الاتصال أو عدم توفر الملف بصمت تام
+                pass  # تجاهل أخطاء الاتصال بصمت
 
-        # تشغيل في خيط منفصل لكي لا يؤدي لبطء فتح الحاسبة
         threading.Thread(target=background_task, daemon=True).start()
 
     def on_key_press(self, event):
@@ -104,6 +106,37 @@ class AICalculatorPro:
         elif event.keysym in ("Escape", "c", "C"):
             self.on_button_click("C")
 
+    def safe_eval(self, expr):
+        """محلل حسابي آمن بدلاً من استخدام eval() الخطيرة"""
+        operators = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.UAdd: operator.pos,
+            ast.USub: operator.neg,
+        }
+
+        def _eval(node):
+            if isinstance(node, ast.Constant):  # أرقام (Python 3.8+)
+                if isinstance(node.value, (int, float)):
+                    return node.value
+                raise TypeError("نوع بيانات غير مدعوم")
+            elif isinstance(node, ast.BinOp):  # عمليات ثنائية (+, -, *, /)
+                if type(node.op) in operators:
+                    return operators[type(node.op)](_eval(node.left), _eval(node.right))
+                raise TypeError("عملية غير مسموح بها")
+            elif isinstance(node, ast.UnaryOp):  # أرقام سالبة أو موجبة
+                if type(node.op) in operators:
+                    return operators[type(node.op)](_eval(node.operand))
+                raise TypeError("عملية أحادية غير مسموح بها")
+            else:
+                raise TypeError("تعبير غير صالح")
+
+        # تحليل التعبير الرياضي شجرة نحوياً (AST)
+        parsed_node = ast.parse(expr, mode='eval')
+        return _eval(parsed_node.body)
+
     def on_button_click(self, char):
         if char == "C":
             self.expression = ""
@@ -113,9 +146,16 @@ class AICalculatorPro:
             self.display_var.set(self.expression if self.expression else "0")
         elif char == "=":
             try:
-                result = eval(self.expression)
+                # التحقق الأمني من طول النص لمنع هجمات الاستهلاك المفرط للذاكرة
+                if len(self.expression) > 100:
+                    raise ValueError("التعبير طويل جداً")
+                
+                # استخدام المحلل الآمن
+                result = self.safe_eval(self.expression)
+                
                 if isinstance(result, float) and result.is_integer():
                     result = int(result)
+                
                 self.display_var.set(str(result))
                 self.expression = str(result)
             except Exception:
@@ -127,6 +167,10 @@ class AICalculatorPro:
                 current_number = parts[-1] if parts else ""
                 if "." in current_number:
                     return
+
+            # تحديد حد أقصى للإدخال لتفادي الضغط على الذاكرة
+            if len(self.expression) >= 100:
+                return
 
             if self.display_var.get() == "0" and char not in ".+-*/":
                 self.expression = char
